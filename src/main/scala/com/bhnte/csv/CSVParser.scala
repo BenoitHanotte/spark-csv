@@ -1,4 +1,4 @@
-package com.bhnte.hadoop.parser
+package com.bhnte.csv
 
 import java.io.IOException
 
@@ -6,9 +6,6 @@ import org.apache.hadoop.io.Text
 
 import scala.collection.mutable
 
-/**
-  * Created by b.hanotte on 07/11/16.
-  */
 class CSVParser {
   val stack = new mutable.Stack[State]
   stack.push(TrState())
@@ -48,7 +45,7 @@ class CSVParser {
   def end() = {
     if (elms.nonEmpty || cur.length() > 0) flush()
     if (!isCompleteState) throw new IOException("Incomplete state when calling end(): the input is not parsable")
-    elms
+    elms.toArray
   }
 
   def flush() = {

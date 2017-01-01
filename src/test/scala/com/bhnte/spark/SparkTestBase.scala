@@ -1,5 +1,8 @@
 package com.bhnte.spark
 
+import com.bhnte.spark.format.csv.SparkCSVFileFormat
+import org.apache.hadoop.conf.Configuration
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.{SparkConf, SparkContext}
 
 /**
@@ -7,16 +10,9 @@ import org.apache.spark.{SparkConf, SparkContext}
   */
 object SparkTestBase {
 
-  private var sc: Option[SparkContext] = _
-
-  def getSparkContext = {
-    synchronized {
-      sc match {
-        case None =>
-          sc = Some(new SparkContext(new SparkConf().setMaster("local").setAppName("spark-csv-unit")))
-          sc.get
-        case _ => sc.get
-      }
-    }
-  }
+  val spark = SparkSession
+                .builder()
+                .master("local")
+                .appName("Spark unit tests")
+                .getOrCreate()
 }

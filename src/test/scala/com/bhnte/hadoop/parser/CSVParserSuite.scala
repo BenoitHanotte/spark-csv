@@ -2,6 +2,7 @@ package com.bhnte.hadoop.parser
 
 import java.io.IOException
 
+import com.bhnte.csv.CSVParser
 import org.scalatest.FunSuite
 import org.scalatest.Matchers._
 

@@ -2,8 +2,7 @@ package com.bhnte.hadoop.format
 
 import java.io.IOException
 
-import com.bhnte.hadoop.parser.CSVParser
-import com.bhnte.instrumentation.Instrument
+import com.bhnte.csv.CSVParser
 import org.apache.commons.logging.LogFactory
 import org.apache.hadoop.fs.Seekable
 import org.apache.hadoop.io.compress._
@@ -13,21 +12,20 @@ import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext
 import org.apache.hadoop.util.LineReader
 
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
 
 /**
   * Created by b.hanotte on 07/11/16.
   */
-class CSVInputFormat[LongWritable, ArrayBuffer[String]] extends FileInputFormat[LongWritable, ArrayBuffer[String]] {
-  override def createRecordReader(inputSplit: InputSplit, taskAttemptContext: TaskAttemptContext): RecordReader[LongWritable, ArrayBuffer[String]] =
-    new CSVRecordReader(Some("\n".getBytes)).asInstanceOf[RecordReader[LongWritable, ArrayBuffer[String]]]
+class CSVInputFormat[LongWritable, Array[String]] extends FileInputFormat[LongWritable, Array[String]] {
+  override def createRecordReader(inputSplit: InputSplit, taskAttemptContext: TaskAttemptContext): RecordReader[LongWritable, Array[String]] =
+    new CSVRecordReader(Some("\n".getBytes)).asInstanceOf[RecordReader[LongWritable, Array[String]]]
 }
 
 object CSVRecordReader {
   private val Log = LogFactory.getLog(getClass)
 }
 
-class CSVRecordReader(val recordDelimiter: Option[Array[Byte]] = None) extends RecordReader[LongWritable, ArrayBuffer[String]] {
+class CSVRecordReader(val recordDelimiter: Option[Array[Byte]] = None) extends RecordReader[LongWritable, Array[String]] {
   import CSVRecordReader._
 
   private var start: Long = 0L
@@ -35,7 +33,7 @@ class CSVRecordReader(val recordDelimiter: Option[Array[Byte]] = None) extends R
   private var end = 0L
 
   private var isCompressedInput: Boolean = _
-  private var decompressor: Option[Decompressor] = _
+  private var decompressor: Option[Decompressor] = None
   private var in: LineReader = _
   private var filePosition: Seekable = _
   private var maxLineLength: Int = Int.MaxValue
@@ -43,7 +41,7 @@ class CSVRecordReader(val recordDelimiter: Option[Array[Byte]] = None) extends R
   private var key: LongWritable = new LongWritable()
   private val splitFirstKey = key
   private var textLine: Text = new Text()
-  private var value: ArrayBuffer[String] = _
+  private var value: Array[String] = _
 
   override def initialize(genericSplit: InputSplit, context: TaskAttemptContext): Unit = {
     val job = context.getConfiguration
@@ -51,18 +49,18 @@ class CSVRecordReader(val recordDelimiter: Option[Array[Byte]] = None) extends R
     val file = split.getPath
     val fs = file.getFileSystem(job)
     val fileIn = fs.open(file)
-    val codec = Option(new CompressionCodecFactory(job).getCodec(file))
+    val codecOpt = Option(new CompressionCodecFactory(job).getCodec(file))
 
     start = split.getStart
     end = start + split.getLength
 
-    codec match {
-      case Some(codec1) => {
+    codecOpt match {
+      case Some(codec) => {
         isCompressedInput = true
-        decompressor = Some(CodecPool.getDecompressor(codec1))
+        decompressor = Some(CodecPool.getDecompressor(codec))
 
-        codec1 match {
-          case codec2: SplittableCompressionCodec => {
+        codec match {
+          case _: SplittableCompressionCodec => {
             val cIn = codec.asInstanceOf[SplittableCompressionCodec].createInputStream(fileIn, decompressor.get, start, end, SplittableCompressionCodec.READ_MODE.BYBLOCK)
             start = cIn.getAdjustedStart
             end = cIn.getAdjustedEnd
@@ -72,8 +70,8 @@ class CSVRecordReader(val recordDelimiter: Option[Array[Byte]] = None) extends R
               case None => in = new LineReader(cIn, job)
             }
           }
-          case codec2 => {
-            val cIn = codec2.createInputStream(fileIn, decompressor.get)
+          case _ => {
+            val cIn = codec.createInputStream(fileIn, decompressor.get)
             filePosition = fileIn
             recordDelimiter match {
               case Some(d) =>  in = new LineReader(cIn, job, recordDelimiter.get)
@@ -159,7 +157,7 @@ class CSVRecordReader(val recordDelimiter: Option[Array[Byte]] = None) extends R
     *         1. The position of the next record's start
     *         2. The parsed CSV values
     */
-  private def parseFromLine(startPos: Long, posQueue: mutable.Queue[Long], lineBuffer: LineBuffer): (Long, ArrayBuffer[String]) = {
+  private def parseFromLine(startPos: Long, posQueue: mutable.Queue[Long], lineBuffer: LineBuffer): (Long, Array[String]) = {
     val parser = new CSVParser()
     var isValidCsvParsed = false
     var curPos = startPos
