@@ -1,4 +1,4 @@
-package com.bhnte.hadoop.format
+package com.bhnte.hadoop.format.csv
 
 import java.io.IOException
 

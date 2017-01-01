@@ -3,7 +3,8 @@ package com.bhnte.spark.format.csv
 import java.io.{ObjectInputStream, ObjectOutputStream}
 import java.net.URI
 
-import com.bhnte.hadoop.format.{CSVInputFormat, CSVRecordReader}
+import com.bhnte.hadoop.format.CSVRecordReader
+import com.bhnte.hadoop.format.csv.{CSVInputFormat, CSVRecordReader}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.hadoop.io.LongWritable
